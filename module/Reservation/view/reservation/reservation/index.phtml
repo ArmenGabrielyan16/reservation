@@ -1,0 +1,88 @@
+<?php
+/** @var \Reservation\Entity\Hall $hall */
+$hall = $this->hall;
+?>
+<div class="row">
+    <div class="col-sm-12 col-sm-offset-4">
+        <?php
+            foreach (range(1, $hall->getRows()) as $row) {
+                echo '<div class="hall-row">';
+
+                foreach (range(1, $hall->getSeatsInRow()) as $seat) {
+                    $id = $row . '-' . $seat;
+                    $reserved = false;
+
+                    /** @var \Reservation\Entity\Reserve $reserve */
+                    foreach ($this->reserves as $reserve) {
+                        if ($reserve->getRow() == $row && $reserve->getSeat() == $seat && $reserve->getInactive() == \Reservation\Service\ReservationService::ACTIVE) {
+                            echo '<button class="btn seat" id="' . $id . '" style="background: red" value="' . $reserve->getId() .'">' . $id . '</button>';
+
+                            $reserved = true;
+                            break;
+                        }
+                    }
+
+                    if (!$reserved) {
+                        echo '<button class="btn seat" id="' . $id . '">' . $id . '</button>';
+                    }
+                }
+
+                echo '</div>';
+            }
+        ?>
+    </div>
+</div>
+
+<script>
+    $(document).ready(function () {
+        $('.seat').click(function(event) {
+            $.post('<?= $this->url('home', ['hall_id' => $this->hallID, 'movie_id' => $this->movieID]) ?>',
+                {
+                    row_seat: event.target.id,
+                    reserve_id: $(this).val()
+                }
+            );
+        });
+
+        function update() {
+            $.ajax({
+                url: '<?= $this->url('home/update', ['hall_id' => $this->hallID, 'movie_id' => $this->movieID]) ?>',
+                cache: false,
+                success: function(reserves){
+                    reserves.forEach(function (reserve) {
+                        $reserve = $('#' + reserve['row'] + '-' + reserve['seat']);
+
+                        if (reserve['inactive'] ==  0) {
+                            $reserve.css({'background': 'red'});
+                            $reserve.val(reserve['id'])
+                        } else {
+                            $reserve.css({'background': 'white'});
+                        }
+                    });
+                }
+            });
+        }
+
+        setInterval (update, 2500);
+    });
+</script>
+<style>
+    .seat {
+        width: 45px;
+        height: 45px;
+        background: #fff;
+        border: 1px solid #000;
+        float: left;
+        margin-right: -1px;
+        margin-top: -1px;
+        padding: 0;
+        text-align: center;
+    }
+
+
+    .hall-row:after {
+        clear: both;
+        content: "";
+        display: table;
+    }
+</style>
